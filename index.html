@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Question...</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              romantic: {
+                50: '#fff1f2',
+                100: '#ffe4e6',
+                200: '#fecdd3',
+                300: '#fda4af',
+                400: '#fb7185',
+                500: '#f43f5e',
+                600: '#e11d48',
+                700: '#be123c',
+                800: '#9f1239',
+                900: '#881337',
+              }
+            },
+            fontFamily: {
+              handwriting: ['"Great Vibes"', 'cursive'],
+              serif: ['"Playfair Display"', 'serif'],
+              sans: ['"Inter"', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        /* --- CORE STYLES --- */
+        body {
+            background: radial-gradient(circle at center, #2e1065 0%, #0f0518 100%);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            color: white;
+            perspective: 1000px;
+        }
+
+        /* --- STAGE MANAGEMENT --- */
+        .stage {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+            z-index: 10;
+        }
+
+        .stage.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        .stage.hidden {
+            opacity: 0;
+            transform: scale(0.95) blur(10px);
+            pointer-events: none;
+        }
+
+        /* --- ENVELOPE 3D --- */
+        .envelope-wrapper {
+            position: relative;
+            width: 320px;
+            height: 220px;
+            cursor: pointer;
+        }
+        
+        .envelope-wrapper:hover .envelope {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .envelope {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #be123c;
+            border-radius: 6px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transition: all 0.4s ease;
+            transform-style: preserve-3d;
+            z-index: 10;
+        }
+
+        /* The flap */
+        .envelope::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-top: 120px solid #9f1239; /* Flap Color */
+            border-left: 160px solid transparent;
+            border-right: 160px solid transparent;
+            border-bottom: 100px solid transparent;
+            border-radius: 6px;
+            transform-origin: top;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), z-index 0.6s;
+            z-index: 5; /* Start on top */
+            pointer-events: none;
+        }
+
+        /* The pocket (front) */
+        .envelope::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Pocket shape using borders */
+            border-bottom: 120px solid #e11d48; /* Front Color */
+            border-left: 160px solid #e11d48;
+            border-right: 160px solid #e11d48;
+            border-top: 100px solid transparent;
+            border-radius: 6px;
+            z-index: 4;
+            pointer-events: none;
+            /* Simple Clip Path to make sure it covers properly without blocking middle too much? 
+               Actually border trick works well for envelopes. 
+            */
+            clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%);
+            background: #e11d48;
+            border: none;
+        }
+
+        .envelope.open::before {
+            transform: rotateX(180deg);
+            z-index: 1;
+        }
+        
+        /* The Card Inside */
+        .card-preview {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 90%;
+            background: white;
+            border-radius: 4px;
+            z-index: 2; /* Behind pocket (4), in front of back (bg) */
+            transition: transform 0.8s ease-in-out 0.2s;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .envelope.open .card-preview {
+            transform: translateX(-50%) translateY(-100px);
+            z-index: 3; /* Still behind pocket visually until it flies out */
+        }
+        
+        /* --- EXPANDED LETTER --- */
+        .letter-content {
+            background: #fffaf0;
+            width: 100%;
+            max-width: 600px;
+            min-height: 400px;
+            padding: 3rem;
+            border-radius: 4px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+            transform: translateY(50px);
+            opacity: 0;
+            transition: all 0.8s ease-out;
+            color: #333;
+        }
+
+        .letter-content.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .paper-lines {
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 100% 2rem;
+            line-height: 2rem;
+        }
+
+        /* --- BUTTONS --- */
+        .btn-glow:hover {
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        /* --- PARTICLES --- */
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* --- UTILS --- */
+        .hidden { display: none; }
+        .blink { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer { 
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "framer-motion": "https://esm.sh/framer-motion@^12.34.0",
+    "canvas-confetti": "https://esm.sh/canvas-confetti@^1.9.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.564.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+
+    <!-- Canvas for particles -->
+    <canvas id="canvas"></canvas>
+
+    <!-- Background Music (Optional) -->
+    <!-- Muted by default policy, but we can try to play on interaction -->
+    <audio id="bg-music" loop>
+        <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e4/Gymnopedie_No_1.ogg/Gymnopedie_No_1.ogg.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Music Toggle -->
+    <button id="music-toggle" class="fixed top-5 right-5 z-50 p-3 rounded-full bg-white/10 backdrop-blur hover:bg-white/20 transition-all opacity-0 pointer-events-none text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+    </button>
+
+    <!-- STAGE 1: INTRO -->
+    <div id="intro" class="stage active">
+        <h1 class="font-serif text-3xl md:text-5xl italic tracking-wider font-light text-center px-4 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] opacity-0 transform translate-y-4 transition-all duration-1000" id="intro-text">
+            I have something to tell you...
+        </h1>
+    </div>
+
+    <!-- STAGE 2: ENVELOPE -->
+    <div id="envelope-stage" class="stage hidden">
+        <div class="envelope-wrapper" id="envelope-wrapper">
+            <div class="envelope" id="envelope">
+                <div class="card-preview flex items-center justify-center">
+                   <span class="text-4xl">❤️</span>
+                </div>
+            </div>
+            <p class="text-white/60 text-sm font-sans tracking-[0.2em] uppercase mt-12 text-center animate-pulse">
+                Click to open
+            </p>
+        </div>
+    </div>
+
+    <!-- STAGE 3: LETTER -->
+    <div id="letter-stage" class="stage hidden px-4">
+        <div class="letter-content" id="letter-content">
+            <div class="font-serif text-lg md:text-xl text-gray-800 paper-lines min-h-[200px]" id="typewriter-area">
+                <!-- Text injected via JS -->
+            </div>
+            <div class="mt-8 text-right font-handwriting text-3xl text-romantic-600 opacity-0 transition-opacity duration-1000" id="signature">
+                Your Secret Admirer
+            </div>
+        </div>
+    </div>
+
+    <!-- STAGE 4: QUESTION -->
+    <div id="question-stage" class="stage hidden">
+        <h1 class="font-handwriting text-5xl md:text-7xl mb-12 text-center px-4 drop-shadow-lg animate-float">
+            Will you be my Valentine?
+        </h1>
+        <div class="flex flex-col md:flex-row gap-6 items-center w-full max-w-md px-4 relative h-32 md:h-20 justify-center">
+            <button id="yes-btn" class="px-10 py-3 bg-white text-romantic-600 rounded-full font-bold text-xl shadow-lg hover:scale-110 transition-transform btn-glow z-10">
+                YES ❤️
+            </button>
+            <button id="no-btn" class="px-10 py-3 bg-transparent border-2 border-white text-white rounded-full font-bold text-xl backdrop-blur-sm transition-all absolute md:relative z-10">
+                NO 💔
+            </button>
+        </div>
+    </div>
+
+    <!-- STAGE 5: SUCCESS -->
+    <div id="success-stage" class="stage hidden">
+        <div class="text-center z-50">
+            <h1 class="font-handwriting text-6xl md:text-8xl mb-6 text-pink-200 drop-shadow-lg">
+                I knew it! ❤️
+            </h1>
+            <p class="font-serif text-xl md:text-2xl opacity-90 mb-8">
+                Best. Valentine. Ever.
+            </p>
+            <div class="text-6xl animate-bounce">
+                💑
+            </div>
+        </div>
+    </div>
+
+    <!-- EASTER EGG -->
+    <div id="easter-egg" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white/90 text-romantic-900 px-6 py-3 rounded-full font-bold shadow-lg transform translate-y-20 opacity-0 transition-all duration-500 z-[100]">
+        You found the secret! I love you! 💖
+    </div>
+
+<script>
+    // --- CONFIGURATION ---
+    const CONFIG = {
+        messageParts: [
+            "My Dearest,",
+            "",
+            "From the moment our paths crossed, my world became infinitely brighter.",
+            "Your laughter is my favorite melody, and your kindness captures my heart every single day.",
+            "",
+            "I cherish every quiet moment and every loud adventure we share.",
+            "",
+            "I have a question that I've been meaning to ask you..."
+        ],
+        typeSpeed: 40,
+        linePause: 400
+    };
+
+    // --- STATE MANAGEMENT ---
+    const stages = {
+        intro: document.getElementById('intro'),
+        envelope: document.getElementById('envelope-stage'),
+        letter: document.getElementById('letter-stage'),
+        question: document.getElementById('question-stage'),
+        success: document.getElementById('success-stage')
+    };
+    
+    const audio = document.getElementById('bg-music');
+    const musicBtn = document.getElementById('music-toggle');
+    let musicStarted = false;
+
+    // --- UTILS ---
+    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    function switchStage(current, next) {
+        if(current) {
+            current.classList.remove('active');
+            current.classList.add('exit');
+            setTimeout(() => {
+                current.classList.add('hidden');
+                current.classList.remove('exit');
+            }, 1000);
+        }
+        
+        if(next) {
+            // Small delay to let exit animation start
+            setTimeout(() => {
+                next.classList.remove('hidden');
+                // Force reflow
+                void next.offsetWidth;
+                next.classList.add('active');
+            }, 500);
+        }
+    }
+
+    // --- SEQUENCE CONTROLLER ---
+    async function startSequence() {
+        // 1. Intro Fade In
+        const introText = document.getElementById('intro-text');
+        await wait(500);
+        introText.classList.remove('opacity-0', 'translate-y-4');
+        
+        // 2. Wait then switch to Envelope
+        await wait(3500);
+        switchStage(stages.intro, stages.envelope);
+    }
+
+    // --- ENVELOPE LOGIC ---
+    const envelope = document.getElementById('envelope');
+    const envelopeWrapper = document.getElementById('envelope-wrapper');
+    
+    envelopeWrapper.addEventListener('click', async () => {
+        if(envelope.classList.contains('open')) return;
+        
+        envelope.classList.add('open');
+        
+        // Attempt play music on first interaction
+        if(!musicStarted) {
+            audio.volume = 0.3;
+            audio.play().then(() => {
+                musicStarted = true;
+                musicBtn.classList.remove('opacity-0', 'pointer-events-none');
+                musicBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
+            }).catch(e => console.log("Audio autoplay blocked"));
+        }
+
+        // Wait for open animation + card slide up
+        await wait(1500);
+        
+        // Transition to Letter
+        switchStage(stages.envelope, stages.letter);
+        await wait(1000); // Wait for stage transition
+        
+        document.getElementById('letter-content').classList.add('show');
+        await wait(800);
+        
+        startTypewriter();
+    });
+
+    // --- TYPEWRITER LOGIC ---
+    async function startTypewriter() {
+        const area = document.getElementById('typewriter-area');
+        area.innerHTML = ''; // clear placeholder
+        
+        for (let line of CONFIG.messageParts) {
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'min-h-[1.5em] mb-1';
+            area.appendChild(lineDiv);
+            
+            if (line === "") {
+                await wait(CONFIG.linePause);
+                continue;
+            }
+
+            for (let char of line) {
+                lineDiv.textContent += char;
+                // Add cursor
+                // We're not doing fancy cursor DOM manipulation for simplicity, just appending text
+                await wait(CONFIG.typeSpeed);
+            }
+            await wait(CONFIG.linePause);
+        }
+        
+        // Show Signature
+        document.getElementById('signature').classList.remove('opacity-0');
+        
+        // Wait then go to Question
+        await wait(2500);
+        
+        // Letter fades out, Question fades in
+        switchStage(stages.letter, stages.question);
+    }
+
+    // --- QUESTION LOGIC ---
+    const noBtn = document.getElementById('no-btn');
+    const yesBtn = document.getElementById('yes-btn');
+    
+    function moveNoBtn() {
+        // Get viewport dimensions
+        const maxX = window.innerWidth - noBtn.offsetWidth - 40;
+        const maxY = window.innerHeight - noBtn.offsetHeight - 40;
+        
+        const x = Math.random() * maxX;
+        const y = Math.random() * maxY;
+        
+        // For absolute positioning relative to screen
+        // But button is currently in flex flow.
+        // We switch to fixed positioning on first hover
+        noBtn.style.position = 'fixed';
+        noBtn.style.left = x + 'px';
+        noBtn.style.top = y + 'px';
+    }
+
+    noBtn.addEventListener('mouseenter', moveNoBtn);
+    noBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveNoBtn(); });
+    
+    yesBtn.addEventListener('click', () => {
+        fireConfetti();
+        switchStage(stages.question, stages.success);
+    });
+
+    function fireConfetti() {
+        const duration = 3000;
+        const end = Date.now() + duration;
+
+        (function frame() {
+            confetti({
+                particleCount: 5,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+                colors: ['#e11d48', '#fb7185', '#fff']
+            });
+            confetti({
+                particleCount: 5,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+                colors: ['#e11d48', '#fb7185', '#fff']
+            });
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        }());
+    }
+
+    // --- MUSIC TOGGLE ---
+    musicBtn.addEventListener('click', () => {
+        if(audio.paused) {
+            audio.play();
+            musicBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
+        } else {
+            audio.pause();
+            musicBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
+        }
+    });
+
+    // --- EASTER EGG ---
+    let clickCount = 0;
+    document.body.addEventListener('click', () => {
+        clickCount++;
+        if(clickCount === 5) {
+            const egg = document.getElementById('easter-egg');
+            egg.classList.remove('translate-y-20', 'opacity-0');
+            confetti({ particleCount: 50, spread: 70, origin: { y: 0.9 } });
+            setTimeout(() => {
+                egg.classList.add('translate-y-20', 'opacity-0');
+                clickCount = 0;
+            }, 3000);
+        }
+    });
+
+    // --- PARTICLE BACKGROUND ---
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+        constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = canvas.height + Math.random() * 20;
+            this.speed = Math.random() * 1 + 0.5;
+            this.size = Math.random() * 3 + 1;
+            this.opacity = Math.random() * 0.5 + 0.1;
+            this.type = Math.random() > 0.5 ? 'circle' : 'heart';
+        }
+
+        update() {
+            this.y -= this.speed;
+            if (this.y < -10) {
+                this.y = canvas.height + 10;
+                this.x = Math.random() * canvas.width;
+            }
+        }
+
+        draw() {
+            ctx.fillStyle = `rgba(255, 182, 193, ${this.opacity})`;
+            ctx.beginPath();
+            
+            if (this.type === 'circle') {
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Simple heart shape
+                const x = this.x;
+                const y = this.y;
+                const size = this.size;
+                ctx.moveTo(x, y);
+                ctx.bezierCurveTo(x - size, y - size, x - size * 1.5, y + size / 3, x, y + size);
+                ctx.bezierCurveTo(x + size * 1.5, y + size / 3, x + size, y - size, x, y);
+                ctx.fill();
+            }
+        }
+    }
+
+    function initParticles() {
+        for (let i = 0; i < 50; i++) {
+            particles.push(new Particle());
+        }
+    }
+
+    function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+        requestAnimationFrame(animateParticles);
+    }
+
+    initParticles();
+    animateParticles();
+
+    // START APP
+    startSequence();
+
+</script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
