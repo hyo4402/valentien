@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A Question...</title>
+    <title>Gửi em...</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -248,10 +248,10 @@
     <!-- Canvas for particles -->
     <canvas id="canvas"></canvas>
 
-    <!-- Background Music (Optional) -->
-    <!-- Muted by default policy, but we can try to play on interaction -->
+    <!-- Background Music -->
+    <!-- Place your 'music.mp3' file in the same folder as this index.html -->
     <audio id="bg-music" loop>
-        <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e4/Gymnopedie_No_1.ogg/Gymnopedie_No_1.ogg.mp3" type="audio/mpeg">
+        <source src="music.mp3" type="audio/mpeg">
     </audio>
 
     <!-- Music Toggle -->
@@ -262,7 +262,7 @@
     <!-- STAGE 1: INTRO -->
     <div id="intro" class="stage active">
         <h1 class="font-serif text-3xl md:text-5xl italic tracking-wider font-light text-center px-4 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] opacity-0 transform translate-y-4 transition-all duration-1000" id="intro-text">
-            I have something to tell you...
+            Anh có điều muốn nói...
         </h1>
     </div>
 
@@ -275,7 +275,7 @@
                 </div>
             </div>
             <p class="text-white/60 text-sm font-sans tracking-[0.2em] uppercase mt-12 text-center animate-pulse">
-                Click to open
+                Nhấn để mở thư
             </p>
         </div>
     </div>
@@ -287,7 +287,7 @@
                 <!-- Text injected via JS -->
             </div>
             <div class="mt-8 text-right font-handwriting text-3xl text-romantic-600 opacity-0 transition-opacity duration-1000" id="signature">
-                Your Secret Admirer
+                Người yêu của em
             </div>
         </div>
     </div>
@@ -295,14 +295,14 @@
     <!-- STAGE 4: QUESTION -->
     <div id="question-stage" class="stage hidden">
         <h1 class="font-handwriting text-5xl md:text-7xl mb-12 text-center px-4 drop-shadow-lg animate-float">
-            Will you be my Valentine?
+            Làm Valentine của anh nhé?
         </h1>
         <div class="flex flex-col md:flex-row gap-6 items-center w-full max-w-md px-4 relative h-32 md:h-20 justify-center">
             <button id="yes-btn" class="px-10 py-3 bg-white text-romantic-600 rounded-full font-bold text-xl shadow-lg hover:scale-110 transition-transform btn-glow z-10">
-                YES ❤️
+                ĐỒNG Ý ❤️
             </button>
             <button id="no-btn" class="px-10 py-3 bg-transparent border-2 border-white text-white rounded-full font-bold text-xl backdrop-blur-sm transition-all absolute md:relative z-10">
-                NO 💔
+                KHÔNG 💔
             </button>
         </div>
     </div>
@@ -311,10 +311,10 @@
     <div id="success-stage" class="stage hidden">
         <div class="text-center z-50">
             <h1 class="font-handwriting text-6xl md:text-8xl mb-6 text-pink-200 drop-shadow-lg">
-                I knew it! ❤️
+                Anh biết mà! ❤️
             </h1>
             <p class="font-serif text-xl md:text-2xl opacity-90 mb-8">
-                Best. Valentine. Ever.
+                Valentine vui vẻ nhé em yêu!
             </p>
             <div class="text-6xl animate-bounce">
                 💑
@@ -324,24 +324,32 @@
 
     <!-- EASTER EGG -->
     <div id="easter-egg" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white/90 text-romantic-900 px-6 py-3 rounded-full font-bold shadow-lg transform translate-y-20 opacity-0 transition-all duration-500 z-[100]">
-        You found the secret! I love you! 💖
+        Anh yêu em nhiều lắm! 💖
     </div>
 
 <script>
     // --- CONFIGURATION ---
     const CONFIG = {
         messageParts: [
-            "My Dearest,",
+            "Em ơi...",
             "",
-            "From the moment our paths crossed, my world became infinitely brighter.",
-            "Your laughter is my favorite melody, and your kindness captures my heart every single day.",
+            "Mình đã yêu nhau được mấy tháng rồi.",
+            "Mình đã qua bao nhiêu sóng gió trên đời.",
             "",
-            "I cherish every quiet moment and every loud adventure we share.",
+            "Đây là Valentine đầu tiên anh và em có nhau.",
+            "Sao em không ở đây bên anh lúc này?",
             "",
-            "I have a question that I've been meaning to ask you..."
+            "Đây cà phê nhớ em...",
+            "Đây hàng me nhớ em...",
+            "Đây Đông Du nhớ em bên anh mỗi khi tan ca.",
+            "",
+            "Anh mong sao ngày chóng qua,",
+            "Để mình lại được bên nhau.",
+            "",
+            "Anh có một câu hỏi dành cho em..."
         ],
-        typeSpeed: 40,
-        linePause: 400
+        typeSpeed: 50,
+        linePause: 1000
     };
 
     // --- STATE MANAGEMENT ---
@@ -404,12 +412,12 @@
         
         // Attempt play music on first interaction
         if(!musicStarted) {
-            audio.volume = 0.3;
+            audio.volume = 0.5;
             audio.play().then(() => {
                 musicStarted = true;
                 musicBtn.classList.remove('opacity-0', 'pointer-events-none');
                 musicBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
-            }).catch(e => console.log("Audio autoplay blocked"));
+            }).catch(e => console.log("Audio play failed (file missing or blocked):", e));
         }
 
         // Wait for open animation + card slide up
@@ -442,8 +450,6 @@
 
             for (let char of line) {
                 lineDiv.textContent += char;
-                // Add cursor
-                // We're not doing fancy cursor DOM manipulation for simplicity, just appending text
                 await wait(CONFIG.typeSpeed);
             }
             await wait(CONFIG.linePause);
@@ -471,9 +477,6 @@
         const x = Math.random() * maxX;
         const y = Math.random() * maxY;
         
-        // For absolute positioning relative to screen
-        // But button is currently in flex flow.
-        // We switch to fixed positioning on first hover
         noBtn.style.position = 'fixed';
         noBtn.style.left = x + 'px';
         noBtn.style.top = y + 'px';
